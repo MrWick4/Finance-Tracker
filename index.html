@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <span class="wordmark">Ledger</span>
+  <span class="month-label" id="monthLabel">September 2026</span>
+</header>
+
+<div class="account-switcher" id="accountSwitcher"></div>
+
+<section class="hero" id="hero">
+  <div class="hero-tilt" id="heroTilt">
+    <p class="hero-eyebrow">Available balance</p>
+    <p class="hero-number" id="balanceNumber">$0.00</p>
+    <div class="hero-meta">
+      <span id="incomeMeta">Income $0.00</span>
+      <span class="meta-divider">·</span>
+      <span id="spendMeta">Spent $0.00</span>
+    </div>
+  </div>
+</section>
+
+<section class="add-panel reveal" id="addPanel">
+  <div class="import-row">
+    <button type="button" id="importBtn" class="secondary-btn">
+      Import CSV
+    </button>
+    <input type="file" id="csvInput" accept=".csv,text/csv" hidden>
+  </div>
+  <p class="import-status" id="importStatus"></p>
+
+  <form id="txnForm">
+    <input type="text" id="txnDesc" placeholder="Merchant or description" autocomplete="off" required>
+    <div class="field-row">
+      <input type="number" id="txnAmount" placeholder="0.00" step="0.01" inputmode="decimal" autocomplete="off" required>
+      <select id="txnType">
+        <option value="expense">Expense</option>
+        <option value="income">Income</option>
+      </select>
+    </div>
+    <button type="submit" id="addBtn">Add entry</button>
+    <p class="field-error" id="formError"></p>
+  </form>
+</section>
+
+<div class="import-preview-backdrop" id="importBackdrop">
+  <div class="import-preview-sheet">
+    <h2>Review import</h2>
+    <p class="import-summary" id="importSummary"></p>
+    <div class="import-preview-list" id="importPreviewList"></div>
+    <div class="import-actions">
+      <button type="button" id="importCancel" class="secondary-btn">Cancel</button>
+      <button type="button" id="importConfirm" class="primary-btn">Add entries</button>
+    </div>
+  </div>
+</div>
+
+<section class="register reveal" id="registerSection">
+  <div class="register-head">
+    <h2>Register</h2>
+    <span class="register-count" id="txnCount"></span>
+  </div>
+  <div class="register-list" id="registerList"></div>
+  <p class="empty-state" id="emptyState">No entries yet. Add your first one above — it'll be categorized automatically.</p>
+</section>
+
+<section class="breakdown reveal" id="breakdownSection">
+  <h2>By category</h2>
+  <div class="breakdown-list" id="breakdownList"></div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>
