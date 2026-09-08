@@ -136,7 +136,7 @@ function switchAccount(id) {
 }
 
 function formatCurrency(n) {
-  return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+  return n.toLocaleString(undefined, { style: 'currency', currency: 'CAD' });
 }
 
 function formatDate(iso) {
