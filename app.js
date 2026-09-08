@@ -18,6 +18,10 @@ function categorize(desc, type) {
   return { category: 'Other', class: 'cat-other' };
 }
 
+function genId() {
+  return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
 const ACCOUNTS_KEY = 'ledger_accounts_v1';
 const ACTIVE_ACCOUNT_KEY = 'ledger_active_account_v1';
 const LEGACY_STORAGE_KEY = 'ledger_transactions_v1';
@@ -102,6 +106,7 @@ function setActiveAccountId(id) {
 
 let activeAccountId = getActiveAccountId();
 let transactions = loadTransactions(activeAccountId);
+if (ensureIds(transactions)) saveTransactions(transactions);
 
 function renderAccountSwitcher() {
   const container = document.getElementById('accountSwitcher');
@@ -131,12 +136,13 @@ function renderAccountSwitcher() {
 function switchAccount(id) {
   setActiveAccountId(id);
   transactions = loadTransactions(id);
+  if (ensureIds(transactions)) saveTransactions(transactions);
   renderAccountSwitcher();
   renderAll();
 }
 
 function formatCurrency(n) {
-  return n.toLocaleString(undefined, { style: 'currency', currency: 'CAD' });
+  return n.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
 }
 
 function formatDate(iso) {
@@ -157,11 +163,24 @@ function animateNumber(el, target, duration = 900) {
   requestAnimationFrame(step);
 }
 
+function ensureIds(txns) {
+  let changed = false;
+  txns.forEach(t => {
+    if (!t.id) {
+      t.id = 'txn_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      changed = true;
+    }
+  });
+  return changed;
+}
+
 function renderRegister() {
   const list = document.getElementById('registerList');
   const empty = document.getElementById('emptyState');
   const count = document.getElementById('txnCount');
   list.innerHTML = '';
+
+  if (ensureIds(transactions)) saveTransactions(transactions);
 
   const sorted = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
   count.textContent = sorted.length === 1 ? '1 entry' : `${sorted.length} entries`;
@@ -175,15 +194,22 @@ function renderRegister() {
   sorted.forEach(t => {
     const row = document.createElement('div');
     row.className = 'txn-row';
+    const chipTag = t.type === 'expense'
+      ? `<button type="button" class="txn-category ${t.class} chip-editable" data-txn-id="${t.id}">${t.category}</button>`
+      : `<span class="txn-category ${t.class}">${t.category}</span>`;
     row.innerHTML = `
       <div class="txn-info">
         <p class="txn-desc">${escapeHtml(t.desc)}</p>
         <p class="txn-date">${formatDate(t.date)}</p>
       </div>
-      <span class="txn-category ${t.class}">${t.category}</span>
+      ${chipTag}
       <span class="txn-amount ${t.type === 'income' ? 'amount-income' : 'amount-expense'}">${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}</span>
     `;
     list.appendChild(row);
+  });
+
+  list.querySelectorAll('.chip-editable').forEach(btn => {
+    btn.addEventListener('click', () => openCategoryPicker(btn.dataset.txnId));
   });
 }
 
@@ -191,6 +217,43 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+const EDITABLE_CATEGORIES = [
+  { category: 'Groceries', class: 'cat-groceries' },
+  { category: 'Dining', class: 'cat-dining' },
+  { category: 'Subscriptions', class: 'cat-subscriptions' },
+  { category: 'Transport', class: 'cat-transport' },
+  { category: 'Shopping', class: 'cat-shopping' },
+  { category: 'Utilities', class: 'cat-utilities' },
+  { category: 'Other', class: 'cat-other' },
+];
+
+function openCategoryPicker(txnId) {
+  const txn = transactions.find(t => t.id === txnId);
+  if (!txn) return;
+  const list = document.getElementById('categoryPickerList');
+  list.innerHTML = '';
+  EDITABLE_CATEGORIES.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'category-option ' + opt.class + (opt.category === txn.category ? ' selected' : '');
+    btn.textContent = opt.category;
+    btn.addEventListener('click', () => {
+      txn.category = opt.category;
+      txn.class = opt.class;
+      saveTransactions(transactions);
+      closeCategoryPicker();
+      renderRegister();
+      renderBreakdown();
+    });
+    list.appendChild(btn);
+  });
+  document.getElementById('categoryPickerBackdrop').classList.add('open');
+}
+
+function closeCategoryPicker() {
+  document.getElementById('categoryPickerBackdrop').classList.remove('open');
 }
 
 function renderBreakdown() {
@@ -203,8 +266,8 @@ function renderBreakdown() {
   });
   const maxVal = Math.max(...Object.values(totals), 1);
   const colorMap = {
-    Groceries: 'var(--verdigris)', Dining: 'var(--gold)', Subscriptions: '#5B4C97',
-    Transport: '#385E7A', Shopping: 'var(--rose)', Utilities: '#6B6350', Other: 'var(--ink-soft)'
+    Groceries: 'var(--verdigris)', Dining: 'var(--gold)', Subscriptions: 'var(--violet)',
+    Transport: 'var(--blue)', Shopping: 'var(--rose)', Utilities: 'var(--taupe)', Other: 'var(--ink-soft)'
   };
 
   Object.entries(totals)
@@ -263,7 +326,7 @@ document.getElementById('txnForm').addEventListener('submit', (e) => {
   const type = typeEl.value;
   const cat = categorize(desc, type);
   transactions.push({
-    desc, amount, type, date: new Date().toISOString(),
+    id: genId(), desc, amount, type, date: new Date().toISOString(),
     category: cat.category, class: cat.class
   });
   saveTransactions(transactions);
@@ -284,6 +347,35 @@ hero.addEventListener('pointermove', (e) => {
 });
 hero.addEventListener('pointerleave', () => {
   heroTilt.style.transform = 'rotateX(0deg) rotateY(0deg)';
+});
+
+// --- Dark mode ---
+
+const THEME_KEY = 'ledger_theme';
+
+function applyTheme(theme) {
+  if (theme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.getElementById('themeToggle').textContent = '☀';
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    document.getElementById('themeToggle').textContent = '☾';
+  }
+}
+
+function getStoredTheme() {
+  const stored = localStorage.getItem(THEME_KEY);
+  if (stored === 'dark' || stored === 'light') return stored;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+let currentTheme = getStoredTheme();
+applyTheme(currentTheme);
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(THEME_KEY, currentTheme);
+  applyTheme(currentTheme);
 });
 
 const observer = new IntersectionObserver((entries) => {
@@ -396,7 +488,7 @@ function mapCsvRows(rows) {
 
     const date = dateCol !== -1 ? parseDateString(r[dateCol]) : new Date().toISOString();
     const cat = categorize(desc, type);
-    entries.push({ desc, amount, type, date, category: cat.category, class: cat.class });
+    entries.push({ id: genId(), desc, amount, type, date, category: cat.category, class: cat.class });
   }
   return { entries, error: entries.length === 0 ? 'No usable rows found in that file.' : null };
 }
@@ -458,6 +550,7 @@ document.getElementById('csvInput').addEventListener('change', (e) => {
 });
 
 document.getElementById('importCancel').addEventListener('click', closeImportPreview);
+document.getElementById('categoryPickerCancel').addEventListener('click', closeCategoryPicker);
 
 document.getElementById('importConfirm').addEventListener('click', () => {
   if (pendingImportEntries.length === 0) return;
