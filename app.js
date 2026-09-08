@@ -470,4 +470,3 @@ document.getElementById('importConfirm').addEventListener('click', () => {
   statusEl.classList.remove('is-error');
   statusEl.textContent = 'Added ' + count + ' ' + (count === 1 ? 'entry' : 'entries') + '.';
 });
-
