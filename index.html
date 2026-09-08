@@ -13,7 +13,10 @@
 
 <header class="site-header">
   <span class="wordmark">Ledger</span>
-  <span class="month-label" id="monthLabel">September 2026</span>
+  <div class="header-right">
+    <span class="month-label" id="monthLabel">September 2026</span>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">◐</button>
+  </div>
 </header>
 
 <div class="account-switcher" id="accountSwitcher"></div>
@@ -61,6 +64,16 @@
     <div class="import-actions">
       <button type="button" id="importCancel" class="secondary-btn">Cancel</button>
       <button type="button" id="importConfirm" class="primary-btn">Add entries</button>
+    </div>
+  </div>
+</div>
+
+<div class="import-preview-backdrop" id="categoryPickerBackdrop">
+  <div class="import-preview-sheet">
+    <h2>Change category</h2>
+    <div class="category-option-list" id="categoryPickerList"></div>
+    <div class="import-actions">
+      <button type="button" id="categoryPickerCancel" class="secondary-btn">Cancel</button>
     </div>
   </div>
 </div>
